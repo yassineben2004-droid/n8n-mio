@@ -25,6 +25,48 @@
       "skillPath": "skills/finishing-a-development-branch/SKILL.md",
       "computedHash": "aa2632ed96df59c36348bd8f8ec1ff0fb0c5cc68b60691834687bf4cedc6be3f"
     },
+    "pi-planning-with-files": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": ".pi/skills/planning-with-files/SKILL.md",
+      "computedHash": "8ab19ddfdf26db41026eaf09da071fbf54d01b16871aab6ab212afd4fb518ecb"
+    },
+    "planning-with-files": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files/SKILL.md",
+      "computedHash": "0fb61853ded5fbd589f628013e8af90609aafb35416c0c1f03677b996a4ac47c"
+    },
+    "planning-with-files-ar": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files-ar/SKILL.md",
+      "computedHash": "8bee8daef3477c8860f0cc62cb022a2190ddc46b2dad43b7d47083db046a128c"
+    },
+    "planning-with-files-de": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files-de/SKILL.md",
+      "computedHash": "79e844c7e579c56e7419aa066ccc0b698617ab991a861a0c85325ad791543ead"
+    },
+    "planning-with-files-es": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files-es/SKILL.md",
+      "computedHash": "3c4ddcfce6aaa6a092646c8d2366678db92ecb64303d265bf03292afcb71eb2c"
+    },
+    "planning-with-files-zh": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files-zh/SKILL.md",
+      "computedHash": "93e22eeef2bf6fc8bc516d6950edd96f030897d9e893e7434bb80dd0a8595eda"
+    },
+    "planning-with-files-zht": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files-zht/SKILL.md",
+      "computedHash": "55fb89821e3ea333eab164ed26c5dbcfa3814c7abb9dddca10adca33abef9cea"
+    },
     "receiving-code-review": {
       "source": "obra/superpowers",
       "sourceType": "github",

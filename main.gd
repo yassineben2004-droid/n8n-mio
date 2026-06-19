@@ -28,6 +28,7 @@ func _ready() -> void:
 	_setup_car()
 	_setup_camera()
 	_setup_ui()
+	_setup_systems()
 	camera.call("set_target", player)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("=== MRG City Phase 2 ===")
@@ -984,6 +985,78 @@ func _setup_ui() -> void:
 	mission.set_script(load("res://scripts/mission_01.gd"))
 	add_child(mission)
 	mission.call("setup", player, _huncho_npc, label_obj, label_dlg)
+
+func _setup_systems() -> void:
+	# PlayerStats
+	var stats := Node.new()
+	stats.name = "PlayerStats"
+	stats.add_to_group("player_stats")
+	stats.set_script(load("res://scripts/player_stats.gd"))
+	add_child(stats)
+
+	# HUD
+	var hud := CanvasLayer.new()
+	hud.name = "HUD"
+	hud.set_script(load("res://scripts/hud.gd"))
+	add_child(hud)
+	hud.call("setup", stats)
+
+	# CombatManager
+	var combat := Node.new()
+	combat.name = "CombatManager"
+	combat.set_script(load("res://scripts/combat_manager.gd"))
+	add_child(combat)
+	combat.call("setup", player, stats)
+	# Collega il pugno del player al combat manager
+	player.connect("punched", combat.on_player_punch)
+
+	# WantedSystem
+	var wanted := Node.new()
+	wanted.name = "WantedSystem"
+	wanted.set_script(load("res://scripts/wanted_system.gd"))
+	add_child(wanted)
+	wanted.call("setup", player, stats)
+	# Collega hit NPC → wanted
+	player.connect("punched", wanted.on_npc_hit)
+
+	# DialogueManager
+	var dialogue := Node.new()
+	dialogue.name = "DialogueManager"
+	dialogue.set_script(load("res://scripts/dialogue_manager.gd"))
+	add_child(dialogue)
+	dialogue.call("setup", player)
+
+	# Pickup salute (5 posizioni fisse)
+	var pickup_positions := [
+		Vector3(25, 0.3, 38), Vector3(-100, 0.3, -3),
+		Vector3(62, 0.3, 56), Vector3(-38, 0.3, 38), Vector3(45, 0.3, 22)
+	]
+	for pp: Vector3 in pickup_positions:
+		_spawn_health_pickup(pp, stats)
+
+func _spawn_health_pickup(pos: Vector3, stats: Node) -> void:
+	var body := Area3D.new()
+	body.position = pos
+	var col := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.6
+	col.shape = shape
+	body.add_child(col)
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.4, 0.4, 0.4)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.1, 0.9, 0.2)
+	mat.emission_enabled = true
+	mat.emission = Color(0.1, 1.0, 0.2)
+	mat.emission_energy_multiplier = 1.5
+	mi.mesh = mesh; mi.material_override = mat
+	body.add_child(mi)
+	body.body_entered.connect(func(b):
+		if b.is_in_group("player"):
+			stats.heal(25)
+			body.queue_free())
+	add_child(body)
 
 # ─── input / vehicle ────────────────────────────────────────────────────────
 

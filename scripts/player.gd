@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal punched
+
 const SPEED        := 5.0
 const SPRINT_SPEED := 9.0
 const GRAVITY      := -9.8
@@ -157,6 +159,7 @@ func _input(event: InputEvent) -> void:
 		if is_on_floor() and _state != "punch":
 			_punch_timer = 0.7
 			_switch("punch")
+			punched.emit()
 
 func _physics_process(delta: float) -> void:
 	if in_vehicle:

@@ -5,6 +5,8 @@ var camera: Camera3D
 var car: CharacterBody3D
 var _capsule_mesh: MeshInstance3D
 var _huncho_npc: CharacterBody3D
+var _peco_npc: CharacterBody3D
+var _behope_npc: CharacterBody3D
 var in_vehicle := false
 
 const ENTER_DISTANCE := 4.0
@@ -852,8 +854,9 @@ func _spawn_npc(pos: Vector3, color: Color, display_name: String, model_path: St
 
 func _setup_npcs() -> void:
 	_huncho_npc = _spawn_npc(Vector3(-50, 1.0, 2.5), Color(0.9, 0.6, 0.1), "Huncho", "res://characters/huncho.glb")
-	_spawn_npc(Vector3(-45, 1.0, -2.0), Color(0.2, 0.8, 0.3), "Behope")
+	_behope_npc = _spawn_npc(Vector3(-45, 1.0, -2.0), Color(0.2, 0.8, 0.3), "Behope")
 	_spawn_npc(Vector3(-35, 1.0,  1.5), Color(0.8, 0.2, 0.7), "Chakour")
+	_peco_npc   = _spawn_npc(Vector3(-38, 1.0, 40.0), Color(0.5, 0.8, 0.2), "Peco")
 	# Civili casuali per testare fuga + stelle
 	_spawn_npc(Vector3(-20, 1.0,  3.0), Color(0.75, 0.60, 0.50), "Passante")
 	_spawn_npc(Vector3( 10, 1.0, -2.5), Color(0.60, 0.55, 0.45), "Passante")
@@ -991,6 +994,18 @@ func _setup_ui() -> void:
 	add_child(mission)
 	mission.call("setup", player, _huncho_npc, label_obj, label_dlg)
 
+	var mission02 := Node.new()
+	mission02.name = "Mission02"
+	mission02.set_script(load("res://scripts/mission_02.gd"))
+	add_child(mission02)
+	mission02.call("setup", player, _peco_npc, label_obj, label_dlg)
+
+	var mission03 := Node.new()
+	mission03.name = "Mission03"
+	mission03.set_script(load("res://scripts/mission_03.gd"))
+	add_child(mission03)
+	mission03.call("setup", player, _behope_npc, label_obj, label_dlg)
+
 func _setup_systems() -> void:
 	# PlayerStats
 	var stats := Node.new()
@@ -1044,6 +1059,14 @@ func _setup_systems() -> void:
 	minimap.set_script(load("res://scripts/minimap.gd"))
 	add_child(minimap)
 	minimap.call("setup", player, stats)
+
+	# AudioManager
+	var audio := Node.new()
+	audio.name = "AudioManager"
+	audio.set_script(load("res://scripts/audio_manager.gd"))
+	add_child(audio)
+	audio.call("setup")
+	audio.call("play_ambient")
 
 	# Pickup salute (5 posizioni fisse)
 	var pickup_positions := [

@@ -1013,7 +1013,7 @@ func _setup_systems() -> void:
 	add_child(combat)
 	combat.call("setup", player, stats)
 	# Collega il pugno del player al combat manager
-	player.punched.connect(combat.on_player_punch)
+	player.punched.connect(Callable(combat, "on_player_punch"))
 
 	# WantedSystem
 	var wanted := Node.new()
@@ -1022,7 +1022,7 @@ func _setup_systems() -> void:
 	add_child(wanted)
 	wanted.call("setup", player, stats)
 	# Collega hit NPC → wanted
-	player.punched.connect(wanted.on_npc_hit)
+	player.punched.connect(Callable(wanted, "on_npc_hit"))
 
 	# DialogueManager
 	var dialogue := Node.new()

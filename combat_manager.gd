@@ -1,6 +1,6 @@
 extends Node
 
-const HIT_RADIUS    := 1.8
+const HIT_RADIUS    := 2.5
 const DMG_SINGLE    := 25
 const DMG_COMBO     := 45
 const COMBO_WINDOW  := 0.4
@@ -38,15 +38,12 @@ func on_player_punch() -> void:
 		_apply_hit(hit_npc, dmg, is_combo)
 
 func _find_npc_in_range() -> Node3D:
-	var forward: Vector3 = -_player.global_transform.basis.z
-	var origin: Vector3  = _player.global_position + Vector3(0, 0.9, 0)
+	var origin: Vector3 = _player.global_position + Vector3(0, 0.9, 0)
 	var best: Node3D = null
 	var best_dist := HIT_RADIUS
 	for npc in get_tree().get_nodes_in_group("npc"):
-		var dist: float  = origin.distance_to(npc.global_position)
-		var dir: Vector3 = (npc.global_position - origin).normalized()
-		var dot: float   = forward.dot(dir)
-		if dist < best_dist and dot > 0.3:
+		var dist: float = origin.distance_to(npc.global_position)
+		if dist < best_dist:
 			best_dist = dist
 			best = npc
 	return best

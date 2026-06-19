@@ -991,7 +991,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		if event.keycode == KEY_E:
+		if event.keycode == KEY_V:
 			_toggle_vehicle()
 	if InputMap.has_action("enter_exit_vehicle") and event.is_action_pressed("enter_exit_vehicle"):
 		_toggle_vehicle()

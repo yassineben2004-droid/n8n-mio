@@ -38,7 +38,7 @@ func _load_model(path: String) -> void:
 	_model_root = packed.instantiate()
 	_model_root.name = "NPCModel"
 	_model_root.scale = Vector3(1.0, 1.0, 1.0)
-	_model_root.position = Vector3(0, 0, 0)
+	_model_root.position = Vector3(0, 0.9, 0)
 	add_child(_model_root)
 	_unshade(_model_root)
 	# Prendi l'AnimationPlayer e mettilo in loop

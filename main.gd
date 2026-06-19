@@ -926,6 +926,7 @@ func _setup_camera() -> void:
 func _setup_ui() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.name = "UI"
+	canvas.add_to_group("ui_canvas")
 	add_child(canvas)
 
 	# Orologio — angolo top-right
@@ -956,21 +957,27 @@ func _setup_ui() -> void:
 	label_dlg.add_theme_color_override("font_color", Color.WHITE)
 	canvas.add_child(label_dlg)
 
-	# Goal marker — disco + colonna
+	# Goal marker — disco + colonna (nascosto finché la missione non è attiva)
 	var mat_goal := _make_mat(Color(1.0, 0.9, 0.0, 0.75), Color(1.0, 0.8, 0.0), 2.0)
 	mat_goal.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var goal_root := Node3D.new()
+	goal_root.name = "GoalMarker"
+	goal_root.add_to_group("goal_marker")
+	goal_root.visible = false
 	var disc_cyl := CylinderMesh.new()
 	disc_cyl.top_radius = 2.2; disc_cyl.bottom_radius = 2.2; disc_cyl.height = 0.08
 	disc_cyl.material = mat_goal
 	var disc := MeshInstance3D.new()
-	disc.mesh = disc_cyl; disc.position = Vector3(-100, 0.05, -2.0)
-	add_child(disc)
+	disc.mesh = disc_cyl; disc.position = Vector3(0, 0.05, 0)
+	goal_root.add_child(disc)
 	var beam_cyl := CylinderMesh.new()
 	beam_cyl.top_radius = 0.28; beam_cyl.bottom_radius = 0.28; beam_cyl.height = 8.0
 	beam_cyl.material = mat_goal
 	var beam := MeshInstance3D.new()
-	beam.mesh = beam_cyl; beam.position = Vector3(-100, 4.0, -2.0)
-	add_child(beam)
+	beam.mesh = beam_cyl; beam.position = Vector3(0, 4.0, 0)
+	goal_root.add_child(beam)
+	goal_root.position = Vector3(-100, 0.0, -2.0)
+	add_child(goal_root)
 
 	var mission := Node.new()
 	mission.name = "Mission01"

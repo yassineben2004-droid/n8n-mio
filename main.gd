@@ -231,11 +231,11 @@ func _add_muraglia_block(map: Node3D, center: Vector3, length: float, color: Col
 	# Corpo principale (collisione)
 	map.add_child(_make_box(Vector3(length, height, depth), center, color, name_str))
 
-	# Fascia bassa / graffiti
+	# Fascia bassa scura (~1m, grigio-marrone)
 	map.add_child(_make_visual(
-		_box_mesh(Vector3(length + 0.02, 1.9, depth + 0.02)),
-		Vector3(center.x, bottom + 0.95, center.z),
-		_make_mat(Color(color.r * 0.62, color.g * 0.60, color.b * 0.58))))
+		_box_mesh(Vector3(length + 0.02, 1.8, depth + 0.02)),
+		Vector3(center.x, bottom + 0.9, center.z),
+		_make_mat(Color(0.38, 0.34, 0.30))))
 
 	# Linee di piano
 	var fl_mat := _make_mat(Color(color.r * 0.70, color.g * 0.70, color.b * 0.70))
@@ -250,37 +250,54 @@ func _add_muraglia_block(map: Node3D, center: Vector3, length: float, color: Col
 		Vector3(center.x, bottom + height + 0.27, south_z - 0.22), fl_mat))
 
 	# Finestre + balconi (facciata sud)
-	var win_mat  := _make_mat(Color(0.06, 0.07, 0.14))
+	var win_mat  := _make_mat(Color(0.48, 0.56, 0.68))  # vetro azzurro-grigio
+	var frame_mat := _make_mat(Color(0.92, 0.92, 0.92))  # cornice bianca
+	var lit_mat  := _make_mat(Color(0.90, 0.78, 0.40), Color(1.0, 0.82, 0.40), 1.4)  # finestre illuminate notte
 	var bal_mat  := _make_mat(Color(color.r * 0.90, color.g * 0.90, color.b * 0.90))
-	var rail_mat := _make_mat(Color(0.48, 0.48, 0.52))
+	var rail_mat := _make_mat(Color(0.18, 0.18, 0.20))  # ringhiera scura
 	var cols     := int(length / 5.0)
 
 	for ci in range(cols):
 		var wx := center.x - length * 0.5 + 2.5 + ci * 5.0
 		for fi in range(5):
-			var wy := bottom + 1.6 + fi * 3.0
-			# Finestra
+			var wy := bottom + 1.9 + fi * 3.0
+			# Cornice bianca (leggermente più grande della finestra)
 			map.add_child(_make_visual(
-				_box_mesh(Vector3(2.0, 1.4, 0.14)),
-				Vector3(wx, wy, south_z + 0.07), win_mat))
+				_box_mesh(Vector3(2.2, 1.6, 0.08)),
+				Vector3(wx, wy, south_z + 0.04), frame_mat))
+			# Vetro finestra (alcune illuminate caldo di notte)
+			var use_win_mat: StandardMaterial3D
+			if (ci + fi) % 3 == 0:
+				use_win_mat = lit_mat
+			else:
+				use_win_mat = win_mat
+			map.add_child(_make_visual(
+				_box_mesh(Vector3(1.9, 1.35, 0.10)),
+				Vector3(wx, wy, south_z + 0.08), use_win_mat))
 			# Soletta balcone
 			map.add_child(_make_visual(
 				_box_mesh(Vector3(2.5, 0.10, 0.90)),
 				Vector3(wx, bottom + fi * 3.0 + 0.05, south_z + 0.45), bal_mat))
-			# Ringhiera
+			# Ringhiera scura
 			map.add_child(_make_visual(
 				_box_mesh(Vector3(2.5, 0.62, 0.06)),
 				Vector3(wx, bottom + fi * 3.0 + 0.41, south_z + 0.87), rail_mat))
 
-	# Portoni d'ingresso ogni ~20 m
+	# Portoni d'ingresso ogni ~20 m (archi scuri, marrone scuro)
 	var door_mat  := _make_mat(Color(0.13, 0.09, 0.07))
 	var n_doors: int  = max(1, int(length / 20))
 	var door_step: float = length / float(n_doors)
 	for di in range(n_doors):
 		var dx := center.x - length * 0.5 + door_step * (di + 0.5)
 		map.add_child(_make_visual(
-			_box_mesh(Vector3(1.7, 2.7, 0.16)),
-			Vector3(dx, bottom + 1.35, south_z + 0.08), door_mat))
+			_box_mesh(Vector3(2.0, 3.2, 0.18)),
+			Vector3(dx, bottom + 1.6, south_z + 0.09), door_mat))
+
+	# Striscia parcheggio davanti (asfalto grigio, no barriere)
+	map.add_child(_make_visual(
+		_box_mesh(Vector3(length, 0.04, 6.0)),
+		Vector3(center.x, 0.02, south_z + 3.5),
+		_make_mat(Color(0.36, 0.36, 0.37))))
 
 func _box_mesh(size: Vector3) -> BoxMesh:
 	var m := BoxMesh.new()
@@ -360,34 +377,39 @@ func _add_caffe_molinari(map: Node3D) -> void:
 	map.add_child(_make_visual(_box_mesh(Vector3(1.8, 2.8, 0.10)),
 		Vector3(-100, 1.5, 0.05), glass))
 
-	# Large white awning spanning full ~12m width
+	# Tenda bianca con striscia verde (CAFFE' MOLINARI)
 	var awning_white := _make_mat(Color(0.96, 0.96, 0.96))
 	map.add_child(_make_visual(_box_mesh(Vector3(12.0, 0.12, 2.8)),
 		Vector3(-100, 3.55, -0.6), awning_white))
-	# Red stripe on awning front edge
-	var awning_red := _make_mat(Color(0.80, 0.12, 0.10))
-	map.add_child(_make_visual(_box_mesh(Vector3(12.0, 0.22, 0.12)),
-		Vector3(-100, 3.44, -1.96), awning_red))
-	# Awning valance (hanging front strip)
+	# Striscia verde sulla tenda
+	var awning_green := _make_mat(Color(0.10, 0.42, 0.14))
+	map.add_child(_make_visual(_box_mesh(Vector3(12.0, 0.28, 0.12)),
+		Vector3(-100, 3.44, -1.96), awning_green))
+	# Valance verde pendente
 	map.add_child(_make_visual(_box_mesh(Vector3(12.0, 0.55, 0.06)),
-		Vector3(-100, 3.18, -1.96), awning_red))
+		Vector3(-100, 3.18, -1.96), awning_green))
+	# Insegna neon verde/bianco sopra la porta
+	var neon_mat := _make_mat(Color(0.20, 0.90, 0.30), Color(0.20, 1.0, 0.30), 2.0)
+	map.add_child(_make_visual(_box_mesh(Vector3(4.0, 0.30, 0.08)),
+		Vector3(-100, 4.20, 0.04), neon_mat))
 
-	# Tables + chairs outside under awning
-	var table_mat := _make_mat(Color(0.88, 0.86, 0.84))
-	var chair_mat := _make_mat(Color(0.25, 0.25, 0.28))
+	# Tavolini bianchi con sedie bianche all'aperto
+	var table_mat := _make_mat(Color(0.95, 0.95, 0.95))
+	var chair_mat := _make_mat(Color(0.93, 0.93, 0.93))
+	var leg_mat   := _make_mat(Color(0.60, 0.60, 0.62))
 	for ti in range(4):
 		var tx: float = -106.0 + ti * 4.0
-		# Table top
-		map.add_child(_make_visual(_box_mesh(Vector3(0.8, 0.06, 0.8)),
+		# Piano tavolo (rotondo — approssimato con box)
+		map.add_child(_make_visual(_box_mesh(Vector3(0.75, 0.05, 0.75)),
 			Vector3(tx, 0.76, -1.5), table_mat))
-		# Table leg
-		map.add_child(_make_visual(_box_mesh(Vector3(0.06, 0.76, 0.06)),
-			Vector3(tx, 0.38, -1.5), chair_mat))
-		# Two chairs per table
+		# Gamba tavolo
+		map.add_child(_make_visual(_box_mesh(Vector3(0.05, 0.76, 0.05)),
+			Vector3(tx, 0.38, -1.5), leg_mat))
+		# Due sedie per tavolo
 		for cz: float in [-2.1, -0.9]:
-			map.add_child(_make_visual(_box_mesh(Vector3(0.42, 0.05, 0.42)),
+			map.add_child(_make_visual(_box_mesh(Vector3(0.40, 0.04, 0.40)),
 				Vector3(tx, 0.48, cz), chair_mat))
-			map.add_child(_make_visual(_box_mesh(Vector3(0.42, 0.52, 0.05)),
+			map.add_child(_make_visual(_box_mesh(Vector3(0.40, 0.50, 0.04)),
 				Vector3(tx, 0.72, cz + (0.22 if cz < -1.5 else -0.22)), chair_mat))
 
 func _add_casa_quartiere(map: Node3D) -> void:
@@ -406,10 +428,33 @@ func _add_sottoponte(map: Node3D) -> void:
 	# Il vero sottoponte: tunnel pedonale sotto un sovrappasso
 	# Soffitto piatto in cemento
 	map.add_child(_make_visual(_box_mesh(Vector3(24, 0.9, 14)),
-		Vector3(-52, 4.95, 56), _make_mat(Color(0.30, 0.30, 0.30))))
-	# Pareti laterali tunnel
-	map.add_child(_make_box(Vector3(0.5, 5.0, 14), Vector3(-64.5, 2.5, 56), Color(0.28, 0.28, 0.28)))
-	map.add_child(_make_box(Vector3(0.5, 5.0, 14), Vector3(-39.5, 2.5, 56), Color(0.28, 0.28, 0.28)))
+		Vector3(-52, 4.95, 56), _make_mat(Color(0.26, 0.26, 0.26))))
+	# Pareti laterali tunnel (cemento scuro)
+	map.add_child(_make_box(Vector3(0.5, 5.0, 14), Vector3(-64.5, 2.5, 56), Color(0.25, 0.25, 0.25)))
+	map.add_child(_make_box(Vector3(0.5, 5.0, 14), Vector3(-39.5, 2.5, 56), Color(0.25, 0.25, 0.25)))
+
+	# Muro esterno ROSA/SALMONE a sinistra dell'ingresso (con graffiti blu)
+	map.add_child(_make_visual(_box_mesh(Vector3(8.0, 5.0, 0.20)),
+		Vector3(-60.0, 2.5, 49.0), _make_mat(Color(0.95, 0.72, 0.70))))
+	# Graffiti blu sul muro rosa
+	map.add_child(_make_visual(_box_mesh(Vector3(2.5, 1.2, 0.22)),
+		Vector3(-61.5, 1.8, 49.0), _make_mat(Color(0.15, 0.28, 0.75))))
+	map.add_child(_make_visual(_box_mesh(Vector3(1.2, 0.8, 0.22)),
+		Vector3(-58.5, 2.8, 49.0), _make_mat(Color(0.10, 0.20, 0.65))))
+
+	# Graffiti patches sulle pareti del tunnel (sinistra e destra)
+	var graffiti_patches := [
+		[Color(0.72, 0.12, 0.08), Vector3(-64.0, 1.5, 52), Vector3(0.4, 1.8, 2.5)],
+		[Color(0.88, 0.72, 0.08), Vector3(-64.0, 2.8, 56), Vector3(0.4, 1.2, 3.0)],
+		[Color(0.18, 0.60, 0.20), Vector3(-64.0, 1.2, 60), Vector3(0.4, 2.0, 2.2)],
+		[Color(0.65, 0.10, 0.55), Vector3(-39.8, 1.5, 53), Vector3(0.4, 1.5, 2.8)],
+		[Color(0.10, 0.40, 0.80), Vector3(-39.8, 2.5, 57), Vector3(0.4, 1.0, 2.0)],
+		[Color(0.85, 0.30, 0.08), Vector3(-39.8, 1.2, 61), Vector3(0.4, 1.8, 2.4)],
+	]
+	for patch in graffiti_patches:
+		map.add_child(_make_visual(_box_mesh(patch[2]),
+			patch[1], _make_mat(patch[0])))
+
 	# Piloni cilindrici rotondi coperti di graffiti colorati
 	var graffiti_colors := [Color(0.72, 0.18, 0.12), Color(0.18, 0.45, 0.72),
 		Color(0.88, 0.72, 0.10), Color(0.22, 0.60, 0.22), Color(0.65, 0.12, 0.55)]
@@ -420,20 +465,23 @@ func _add_sottoponte(map: Node3D) -> void:
 		var gc: Color = graffiti_colors[col_idx % graffiti_colors.size()]
 		col_idx += 1
 		map.add_child(_make_visual(cyl, Vector3(-52.0 + px, 2.5, 56),
-			_make_mat(gc.lerp(Color(0.22, 0.22, 0.22), 0.45))))
+			_make_mat(gc.lerp(Color(0.22, 0.22, 0.22), 0.40))))
+
 	# Trave con scritta "MURA" (banda verde sul soffitto/trave frontale)
 	map.add_child(_make_visual(_box_mesh(Vector3(20, 0.5, 0.15)),
 		Vector3(-52, 4.55, 49.1), _make_mat(Color(0.08, 0.38, 0.10))))
-	# Scala di accesso con ringhiera
+
+	# Scala di accesso (gradini che scendono leggermente)
 	for si in range(5):
 		map.add_child(_make_visual(_box_mesh(Vector3(4.0, 0.18, 1.1)),
-			Vector3(-56, 0.09 + si * 0.32, 49.5 + si * 0.55),
+			Vector3(-56, 0.09 + si * 0.28, 49.5 + si * 0.55),
 			_make_mat(Color(0.32, 0.32, 0.34))))
 	# Ringhiera scala
 	map.add_child(_make_visual(_box_mesh(Vector3(0.06, 0.9, 5.0)),
-		Vector3(-54.1, 1.1, 51.5), _make_mat(Color(0.55, 0.45, 0.10))))
-	# Lampada a gabbia sul soffitto
-	var cage_mat := _make_mat(Color(0.55, 0.42, 0.18), Color(1.0, 0.65, 0.20), 1.5)
+		Vector3(-54.1, 1.1, 51.5), _make_mat(Color(0.45, 0.45, 0.48))))
+
+	# Lampada a gabbia arancione/gialla sul soffitto (singola)
+	var cage_mat := _make_mat(Color(0.55, 0.42, 0.18), Color(1.0, 0.65, 0.20), 2.0)
 	map.add_child(_make_visual(_box_mesh(Vector3(0.22, 0.22, 0.22)),
 		Vector3(-52, 4.55, 56), cage_mat))
 	var tl := OmniLight3D.new()
@@ -443,12 +491,13 @@ func _add_sottoponte(map: Node3D) -> void:
 	tl.position = Vector3(-52, 4.4, 56)
 	map.add_child(tl)
 	_lamp_lights.append(tl)
-	# Pavimento tunnel (cemento scuro)
+
+	# Pavimento tunnel (cemento scuro bagnato)
 	map.add_child(_make_visual(_box_mesh(Vector3(24, 0.04, 14)),
-		Vector3(-52, 0.02, 56), _make_mat(Color(0.22, 0.20, 0.20))))
+		Vector3(-52, 0.02, 56), _make_mat(Color(0.18, 0.17, 0.17))))
 	# Grata di scolo
 	map.add_child(_make_visual(_box_mesh(Vector3(1.4, 0.04, 1.4)),
-		Vector3(-52, 0.03, 57), _make_mat(Color(0.12, 0.12, 0.12))))
+		Vector3(-52, 0.03, 57), _make_mat(Color(0.10, 0.10, 0.10))))
 
 func _add_piazza_omegna(map: Node3D) -> void:
 	# Grande piazza aperta in asfalto/cemento
@@ -473,9 +522,26 @@ func _add_piazza_omegna(map: Node3D) -> void:
 		sapling_leaves.radius = 0.7; sapling_leaves.height = 1.4
 		root.add_child(_make_visual(sapling_leaves, Vector3(0, 2.8, 0),
 			_make_mat(Color(0.20, 0.40, 0.14))))
-	# Edificio marrone lato destro (visivo)
-	map.add_child(_make_visual(_box_mesh(Vector3(0.3, 18, 32)),
-		Vector3(-31, 9, 72), _make_mat(Color(0.52, 0.36, 0.26))))
+	# Basi bianche dipinte sui tronchi degli alberelli (stile italiano)
+	for tx: float in [-62.0, -50.0, -38.0, -26.0]:
+		map.add_child(_make_visual(_box_mesh(Vector3(0.14, 0.60, 0.14)),
+			Vector3(tx, 0.30, 68), _make_mat(Color(0.96, 0.96, 0.94))))
+
+	# Edificio mattoni rosso-marrone sul lato est (facciata intera)
+	map.add_child(_make_box(Vector3(0.5, 16, 32), Vector3(-31, 8, 72),
+		Color(0.52, 0.32, 0.22), "PiazzaEastBuilding"))
+	# Texture mattoni (bande orizzontali alternate più scure)
+	var brick_dark := _make_mat(Color(0.42, 0.24, 0.16))
+	for bi in range(8):
+		map.add_child(_make_visual(_box_mesh(Vector3(0.52, 0.18, 32)),
+			Vector3(-31, 1.0 + bi * 1.8, 72), brick_dark))
+	# Davanzali finestre sulla facciata
+	var sill_mat := _make_mat(Color(0.72, 0.68, 0.62))
+	for fi in range(4):
+		var fy: float = 3.0 + fi * 3.5
+		for fz: float in [60.0, 68.0, 76.0, 84.0]:
+			map.add_child(_make_visual(_box_mesh(Vector3(0.54, 0.10, 1.4)),
+				Vector3(-31, fy, fz), sill_mat))
 
 func _add_pine(parent: Node3D, pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -565,86 +631,21 @@ func _add_parco(map: Node3D) -> void:
 	_add_bench(map, Vector3(45, 0, 22))
 	_add_bench(map, Vector3(45, 0, 54))
 
-	# ── Playground area (east side of park) ──
-	var pg_x := 62.0
-	var pg_z := 45.0
+	# Panchina/cordonata in cemento (lunga lastra bassa con graffiti)
+	map.add_child(_make_visual(_box_mesh(Vector3(6.0, 0.40, 0.55)),
+		Vector3(35, 0.20, 38), _make_mat(Color(0.58, 0.56, 0.52))))
+	# Graffiti sulla cordonata
+	map.add_child(_make_visual(_box_mesh(Vector3(1.4, 0.42, 0.56)),
+		Vector3(33.5, 0.21, 38), _make_mat(Color(0.18, 0.42, 0.75))))
+	map.add_child(_make_visual(_box_mesh(Vector3(0.9, 0.42, 0.56)),
+		Vector3(36.8, 0.21, 38), _make_mat(Color(0.75, 0.15, 0.10))))
 
-	# Sandbox — flat pit with sand color
-	map.add_child(_make_visual(_box_mesh(Vector3(4.0, 0.12, 3.0)),
-		Vector3(pg_x + 4, 0.06, pg_z), _make_mat(Color(0.85, 0.78, 0.52))))
-	# Sand border
-	map.add_child(_make_visual(_box_mesh(Vector3(4.2, 0.18, 0.18)),
-		Vector3(pg_x + 4, 0.09, pg_z - 1.59), _make_mat(Color(0.50, 0.38, 0.22))))
-	map.add_child(_make_visual(_box_mesh(Vector3(4.2, 0.18, 0.18)),
-		Vector3(pg_x + 4, 0.09, pg_z + 1.59), _make_mat(Color(0.50, 0.38, 0.22))))
-
-	# Swing set — metal A-frame + horizontal bar + two swings
-	var metal_sw := _make_mat(Color(0.55, 0.55, 0.58))
-	var rope_mat := _make_mat(Color(0.30, 0.25, 0.18))
-	var seat_mat := _make_mat(Color(0.18, 0.38, 0.62))
-	# A-frame left
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 2.6, 0.08)),
-		Vector3(pg_x - 1.0, 1.3, pg_z - 1.2), metal_sw))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 2.6, 0.08)),
-		Vector3(pg_x - 1.0, 1.3, pg_z + 1.2), metal_sw))
-	# A-frame right
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 2.6, 0.08)),
-		Vector3(pg_x + 1.0, 1.3, pg_z - 1.2), metal_sw))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 2.6, 0.08)),
-		Vector3(pg_x + 1.0, 1.3, pg_z + 1.2), metal_sw))
-	# Horizontal bar
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 0.08, 2.6)),
-		Vector3(pg_x, 2.6, pg_z), metal_sw))
-	# Swing seats + ropes
-	for sw_x: float in [pg_x - 0.6, pg_x + 0.6]:
-		map.add_child(_make_visual(_box_mesh(Vector3(0.04, 1.4, 0.04)),
-			Vector3(sw_x, 1.6, pg_z - 0.5), rope_mat))
-		map.add_child(_make_visual(_box_mesh(Vector3(0.04, 1.4, 0.04)),
-			Vector3(sw_x, 1.6, pg_z + 0.5), rope_mat))
-		map.add_child(_make_visual(_box_mesh(Vector3(0.36, 0.06, 0.18)),
-			Vector3(sw_x, 0.9, pg_z), seat_mat))
-
-	# Slide — orange ramp on metal frame
-	var orange_mat := _make_mat(Color(0.90, 0.42, 0.06))
-	var frame_mat := _make_mat(Color(0.60, 0.60, 0.62))
-	# Platform
-	map.add_child(_make_visual(_box_mesh(Vector3(1.1, 0.10, 1.0)),
-		Vector3(pg_x - 4, 1.55, pg_z), orange_mat))
-	# Frame legs
-	for lx: float in [pg_x - 4.55, pg_x - 3.45]:
-		for lz: float in [pg_z - 0.45, pg_z + 0.45]:
-			map.add_child(_make_visual(_box_mesh(Vector3(0.07, 1.6, 0.07)),
-				Vector3(lx, 0.8, lz), frame_mat))
-	# Ramp (rotated box)
-	var ramp := _make_visual(_box_mesh(Vector3(1.0, 0.06, 2.2)),
-		Vector3(pg_x - 4, 0.88, pg_z + 1.6), orange_mat)
-	ramp.rotation_degrees.x = -36.0
-	map.add_child(ramp)
-
-	# Climbing frame with yellow accents
-	var climb_mat := _make_mat(Color(0.25, 0.25, 0.28))
-	var yellow_mat := _make_mat(Color(0.90, 0.78, 0.10))
-	for cx: float in [pg_x - 8.5, pg_x - 6.5]:
-		for cz: float in [pg_z - 1.0, pg_z + 1.0]:
-			map.add_child(_make_visual(_box_mesh(Vector3(0.08, 2.2, 0.08)),
-				Vector3(cx, 1.1, cz), climb_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(2.2, 0.08, 0.08)),
-		Vector3(pg_x - 7.5, 2.2, pg_z - 1.0), yellow_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(2.2, 0.08, 0.08)),
-		Vector3(pg_x - 7.5, 2.2, pg_z + 1.0), yellow_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 0.08, 2.1)),
-		Vector3(pg_x - 8.5, 2.2, pg_z), yellow_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.08, 0.08, 2.1)),
-		Vector3(pg_x - 6.5, 2.2, pg_z), yellow_mat))
-
-	# Small soccer goal (background)
-	var goal_mat := _make_mat(Color(0.88, 0.88, 0.90))
-	map.add_child(_make_visual(_box_mesh(Vector3(3.0, 0.06, 0.06)),
-		Vector3(45, 1.55, 16), goal_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.06, 1.6, 0.06)),
-		Vector3(43.5, 0.8, 16), goal_mat))
-	map.add_child(_make_visual(_box_mesh(Vector3(0.06, 1.6, 0.06)),
-		Vector3(46.5, 0.8, 16), goal_mat))
+	# Strisce di cespugli densi lungo il sentiero (bassi, verde scuro)
+	var bush_mat := _make_mat(Color(0.10, 0.28, 0.08))
+	map.add_child(_make_visual(_box_mesh(Vector3(3.0, 0.55, 50.0)),
+		Vector3(14.5, 0.28, 38), bush_mat))
+	map.add_child(_make_visual(_box_mesh(Vector3(3.0, 0.55, 50.0)),
+		Vector3(75.5, 0.28, 38), bush_mat))
 
 	# Fontanella (simple concrete drinking fountain post) near path
 	var conc_mat := _make_mat(Color(0.62, 0.60, 0.58))
@@ -702,6 +703,18 @@ func _add_campetto(map: Node3D) -> void:
 			Vector3(gx + depth_sign * 0.6, 1.0, 36.5), goal_mat))
 		map.add_child(_make_visual(_box_mesh(Vector3(1.2, 0.06, 0.06)),
 			Vector3(gx + depth_sign * 0.6, 1.0, 39.5), goal_mat))
+
+	# Graffiti splotches sul muro dietro le porte (patch colorate rettangolari)
+	var wall_graffiti := [
+		[Color(0.72, 0.12, 0.08), Vector3(-52.5, 1.5, 30.0), Vector3(2.5, 1.2, 0.12)],
+		[Color(0.10, 0.40, 0.80), Vector3(-49.0, 2.2, 30.0), Vector3(1.8, 0.8, 0.12)],
+		[Color(0.88, 0.70, 0.06), Vector3(-35.0, 1.3, 30.0), Vector3(2.0, 1.0, 0.12)],
+		[Color(0.20, 0.58, 0.18), Vector3(-32.0, 2.0, 30.0), Vector3(1.5, 0.9, 0.12)],
+		[Color(0.65, 0.10, 0.55), Vector3(-52.5, 1.5, 46.0), Vector3(2.2, 1.1, 0.12)],
+		[Color(0.10, 0.35, 0.75), Vector3(-30.0, 1.8, 46.0), Vector3(1.9, 1.3, 0.12)],
+	]
+	for wg in wall_graffiti:
+		map.add_child(_make_visual(_box_mesh(wg[2]), wg[1], _make_mat(wg[0])))
 
 	# Trees around the outside
 	for tx: float in [-55.0, -45.0, -35.0, -25.0, -20.0]:

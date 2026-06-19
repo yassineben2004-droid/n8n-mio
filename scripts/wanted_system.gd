@@ -138,7 +138,7 @@ func _arrest() -> void:
 	if _arrested:
 		return
 	_arrested = true
-	var fine := min(ARREST_FINE, _stats.money)
+	var fine: int = mini(ARREST_FINE, _stats.money)
 	_stats.add_money(-fine)
 	_stats.set_wanted(0)
 	_despawn_all()

@@ -1031,6 +1031,13 @@ func _setup_systems() -> void:
 	add_child(dialogue)
 	dialogue.call("setup", player)
 
+	# Minimappa
+	var minimap := CanvasLayer.new()
+	minimap.name = "Minimap"
+	minimap.set_script(load("res://scripts/minimap.gd"))
+	add_child(minimap)
+	minimap.call("setup", player, stats)
+
 	# Pickup salute (5 posizioni fisse)
 	var pickup_positions := [
 		Vector3(25, 0.3, 38), Vector3(-100, 0.3, -3),

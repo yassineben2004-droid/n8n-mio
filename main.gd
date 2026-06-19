@@ -1031,6 +1031,13 @@ func _setup_systems() -> void:
 	add_child(dialogue)
 	dialogue.call("setup", player)
 
+	# Negozio — Caffè Molinari
+	var shop := Node.new()
+	shop.name = "ShopSystem"
+	shop.set_script(load("res://scripts/shop_system.gd"))
+	add_child(shop)
+	shop.call("setup", player, stats)
+
 	# Minimappa
 	var minimap := CanvasLayer.new()
 	minimap.name = "Minimap"

@@ -854,6 +854,11 @@ func _setup_npcs() -> void:
 	_huncho_npc = _spawn_npc(Vector3(-50, 1.0, 2.5), Color(0.9, 0.6, 0.1), "Huncho", "res://characters/huncho.glb")
 	_spawn_npc(Vector3(-45, 1.0, -2.0), Color(0.2, 0.8, 0.3), "Behope")
 	_spawn_npc(Vector3(-35, 1.0,  1.5), Color(0.8, 0.2, 0.7), "Chakour")
+	# Civili casuali per testare fuga + stelle
+	_spawn_npc(Vector3(-20, 1.0,  3.0), Color(0.75, 0.60, 0.50), "Passante")
+	_spawn_npc(Vector3( 10, 1.0, -2.5), Color(0.60, 0.55, 0.45), "Passante")
+	_spawn_npc(Vector3( 30, 1.0,  2.0), Color(0.65, 0.50, 0.40), "Passante")
+	_spawn_npc(Vector3(-60, 1.0, -3.0), Color(0.70, 0.65, 0.55), "Passante")
 
 # ─── car ────────────────────────────────────────────────────────────────────
 
@@ -1008,7 +1013,7 @@ func _setup_systems() -> void:
 	add_child(combat)
 	combat.call("setup", player, stats)
 	# Collega il pugno del player al combat manager
-	player.connect("punched", combat.on_player_punch)
+	player.punched.connect(combat.on_player_punch)
 
 	# WantedSystem
 	var wanted := Node.new()
@@ -1017,7 +1022,7 @@ func _setup_systems() -> void:
 	add_child(wanted)
 	wanted.call("setup", player, stats)
 	# Collega hit NPC → wanted
-	player.connect("punched", wanted.on_npc_hit)
+	player.punched.connect(wanted.on_npc_hit)
 
 	# DialogueManager
 	var dialogue := Node.new()

@@ -19,6 +19,7 @@ var _sky_mat: ProceduralSkyMaterial
 var _environment: Environment
 var _lamp_lights: Array = []
 var _label_time: Label
+var _tex_cache: Dictionary = {}
 
 func _ready() -> void:
 	_setup_environment()
@@ -70,6 +71,26 @@ func _make_visual(mesh: Mesh, pos: Vector3, mat: StandardMaterial3D) -> MeshInst
 	mi.material_override = mat
 	mi.position = pos
 	return mi
+
+func _load_tex(key: String) -> Texture2D:
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var path := "res://locations/" + key + ".webp"
+	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_tex_cache[key] = tex
+	if tex:
+		print("Texture caricata: ", key)
+	return tex
+
+func _add_facade(parent: Node3D, pos: Vector3, w: float, h: float, key: String) -> void:
+	var tex := _load_tex(key)
+	if not tex:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.albedo_color = Color.WHITE
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	parent.add_child(_make_visual(_box_mesh(Vector3(w, h, 0.02)), pos, mat))
 
 # ─── environment ────────────────────────────────────────────────────────────
 
@@ -201,6 +222,7 @@ func _setup_map() -> void:
 
 	# Garage
 	map.add_child(_make_box(Vector3(18, 5, 14), Vector3(62, 2.5, 56), Color(0.25, 0.25, 0.27), "Garage"))
+	_add_facade(map, Vector3(62, 2.5, 49.08), 18, 5, "garage")
 	map.add_child(_make_visual(_box_mesh(Vector3(5.2, 3.2, 0.15)), Vector3(62, 1.6, 49.05), _make_mat(Color(0.30, 0.30, 0.35))))
 	for pi in range(5):
 		map.add_child(_make_visual(_box_mesh(Vector3(5.0, 0.05, 0.1)), Vector3(62, 0.35 + pi * 0.62, 49.0), _make_mat(Color(0.20, 0.20, 0.24))))
@@ -302,6 +324,9 @@ func _add_muraglia_block(map: Node3D, center: Vector3, length: float, color: Col
 		Vector3(center.x, 0.02, south_z + 3.5),
 		_make_mat(Color(0.36, 0.36, 0.37))))
 
+	# Texture foto reference sulla facciata sud
+	_add_facade(map, Vector3(center.x, center.y, south_z + 0.02), length, height, "muraglia")
+
 func _box_mesh(size: Vector3) -> BoxMesh:
 	var m := BoxMesh.new()
 	m.size = size
@@ -356,6 +381,7 @@ func _add_caffe_molinari(map: Node3D) -> void:
 	# Corner building — ground floor of taller residential block
 	# Building above (beige facade with balconies, orange/bronze railings)
 	map.add_child(_make_box(Vector3(14, 18, 10), Vector3(-100, 9, 5), Color(0.88, 0.82, 0.72), "CaffeMolinariBuilding"))
+	_add_facade(map, Vector3(-100, 9, -0.02), 14, 18, "bar")
 	# Ground floor bar volume (slightly darker)
 	map.add_child(_make_visual(_box_mesh(Vector3(14.02, 4.0, 10.02)),
 		Vector3(-100, 2.0, 5), _make_mat(Color(0.78, 0.74, 0.68))))
@@ -417,6 +443,7 @@ func _add_caffe_molinari(map: Node3D) -> void:
 
 func _add_casa_quartiere(map: Node3D) -> void:
 	map.add_child(_make_box(Vector3(16, 8, 12), Vector3(96, 4, 5), Color(0.30, 0.38, 0.22), "CasaDelQuartiere"))
+	_add_facade(map, Vector3(96, 4, -1.02), 16, 8, "casaquart")
 	# Fascia murale
 	map.add_child(_make_visual(_box_mesh(Vector3(16.02, 2.5, 0.12)), Vector3(96, 1.25, -1.06),
 		_make_mat(Color(0.55, 0.32, 0.18))))
@@ -439,6 +466,7 @@ func _add_sottoponte(map: Node3D) -> void:
 	# Muro esterno ROSA/SALMONE a sinistra dell'ingresso (con graffiti blu)
 	map.add_child(_make_visual(_box_mesh(Vector3(8.0, 5.0, 0.20)),
 		Vector3(-60.0, 2.5, 49.0), _make_mat(Color(0.95, 0.72, 0.70))))
+	_add_facade(map, Vector3(-60.0, 2.5, 48.88), 8.0, 5.0, "sottoponte")
 	# Graffiti blu sul muro rosa
 	map.add_child(_make_visual(_box_mesh(Vector3(2.5, 1.2, 0.22)),
 		Vector3(-61.5, 1.8, 49.0), _make_mat(Color(0.15, 0.28, 0.75))))
@@ -658,6 +686,11 @@ func _add_parco(map: Node3D) -> void:
 	map.add_child(_make_visual(_box_mesh(Vector3(0.25, 0.10, 0.20)),
 		Vector3(16, 0.97, 32), conc_mat))
 
+	# Cartello d'ingresso con foto reference
+	map.add_child(_make_visual(_box_mesh(Vector3(2.8, 0.06, 0.08)),
+		Vector3(16, 2.5, 16), _make_mat(Color(0.28, 0.18, 0.08))))
+	_add_facade(map, Vector3(16, 2.5, 15.96), 2.8, 1.6, "parco")
+
 func _add_campetto(map: Node3D) -> void:
 	# Sand/dirt surface — tan/beige color, NOT concrete grey
 	map.add_child(_make_visual(_box_mesh(Vector3(28, 0.06, 16)),
@@ -723,6 +756,11 @@ func _add_campetto(map: Node3D) -> void:
 	for tx: float in [-55.0, -45.0, -35.0, -25.0, -20.0]:
 		_add_tree(map, Vector3(tx, 0, 26))
 		_add_tree(map, Vector3(tx, 0, 50))
+
+	# Pannello info con foto reference campetto
+	map.add_child(_make_visual(_box_mesh(Vector3(2.0, 0.06, 0.08)),
+		Vector3(-52.0, 2.0, 28.2), _make_mat(Color(0.60, 0.60, 0.62))))
+	_add_facade(map, Vector3(-52.0, 2.0, 28.16), 2.0, 1.2, "campetto")
 
 # ─── streetlamps ────────────────────────────────────────────────────────────
 

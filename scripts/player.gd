@@ -88,8 +88,8 @@ func _load_fallback() -> void:
 	var first := true
 	for mi in _collect_meshes(model):
 		var aabb: AABB = mi.get_aabb()
-		var global_aabb := mi.global_transform * aabb
-		var local_aabb := model.global_transform.affine_inverse() * global_aabb
+		var global_aabb: AABB = mi.global_transform * aabb
+		var local_aabb: AABB = model.global_transform.affine_inverse() * global_aabb
 		if first:
 			combined = local_aabb
 			first = false

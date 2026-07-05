@@ -75,8 +75,12 @@ func _make_visual(mesh: Mesh, pos: Vector3, mat: StandardMaterial3D) -> MeshInst
 func _load_tex(key: String) -> Texture2D:
 	if _tex_cache.has(key):
 		return _tex_cache[key]
-	var path := "res://locations/" + key + ".webp"
-	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	var tex: Texture2D = null
+	for ext in ["webp", "png", "jpg", "jpeg"]:
+		var path := "res://locations/" + key + "." + ext
+		if ResourceLoader.exists(path):
+			tex = load(path)
+			break
 	_tex_cache[key] = tex
 	if tex:
 		print("Texture caricata: ", key)

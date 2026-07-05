@@ -48,6 +48,8 @@ func _load_models() -> void:
 		_unshade(model)
 		var ap := model.find_child("AnimationPlayer", true, false) as AnimationPlayer
 		if ap and ap.get_animation_list().size() > 0:
+			for anim_name in ap.get_animation_list():
+				ap.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
 			ap.play(ap.get_animation_list()[0])
 		_models[state] = model
 		print("Animazione caricata: ", state)
@@ -153,6 +155,19 @@ func _switch(new_state: String) -> void:
 
 func _animate_visual(delta: float) -> void:
 	if not _visual_root:
+		return
+
+	# Con i GLB animati veri il movimento lo fa lo scheletro:
+	# teniamo solo lo squash di atterraggio
+	if not _models.is_empty():
+		var floor_now := is_on_floor()
+		if floor_now and not _was_on_floor:
+			_land_squash = 0.25
+		_was_on_floor = floor_now
+		_land_squash = move_toward(_land_squash, 0.0, delta * 4.0)
+		var sy := 1.0 - _land_squash * 0.35
+		var sxz := 1.0 + _land_squash * 0.20
+		_visual_root.scale = Vector3(sxz, sy, sxz)
 		return
 
 	var on_floor := is_on_floor()

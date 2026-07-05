@@ -23,8 +23,6 @@ var label_dialogue: Label
 var _e_prompt: Label
 var _dialogue_timer := 0.0
 var _mission_timer  := 0.0
-var _marker_pickup: Node3D   = null
-var _marker_delivery: Node3D = null
 
 func setup(p: Node3D, behope_npc: Node3D, obj_lbl: Label, dlg_lbl: Label) -> void:
 	player  = p

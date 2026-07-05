@@ -65,7 +65,7 @@ func _build_menu() -> void:
 	_menu_panel.add_child(title)
 
 	for i in range(ITEMS.size()):
-		var item  = ITEMS[i]
+		var item: Dictionary = ITEMS[i]
 		var row   := Label.new()
 		row.name  = "Item%d" % i
 		row.text  = "[%d] %s  +%dHP  E%d" % [i + 1, item["name"], item["hp"], item["price"]]
@@ -105,7 +105,7 @@ func _input(event: InputEvent) -> void:
 			if event.keycode == KEY_ESCAPE:
 				_close_menu()
 			elif event.keycode >= KEY_1 and event.keycode <= KEY_4:
-				var idx := event.keycode - KEY_1
+				var idx: int = event.keycode - KEY_1
 				_buy(idx)
 
 func _open_menu() -> void:
@@ -124,7 +124,7 @@ func _close_menu() -> void:
 func _buy(idx: int) -> void:
 	if idx < 0 or idx >= ITEMS.size():
 		return
-	var item = ITEMS[idx]
+	var item: Dictionary = ITEMS[idx]
 	if _stats.money < item["price"]:
 		_flash_row(idx, Color(0.9, 0.1, 0.1))
 		return

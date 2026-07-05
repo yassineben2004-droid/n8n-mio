@@ -27,13 +27,13 @@ func _ready() -> void:
 
 func _find_glb(base: String) -> String:
 	# Cerca il GLB sia in characters/ che nella radice del progetto
-	for path in ["res://characters/" + base + ".glb", "res://" + base + ".glb"]:
+	for path: String in ["res://characters/" + base + ".glb", "res://" + base + ".glb"]:
 		if ResourceLoader.exists(path):
 			return path
 	return ""
 
 func _load_models() -> void:
-	var states := ["idle", "walk", "run", "jump", "punch"]
+	var states: Array[String] = ["idle", "walk", "run", "jump", "punch"]
 	for state in states:
 		var path := _find_glb("sugo_" + state)
 		if path == "":

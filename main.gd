@@ -76,8 +76,8 @@ func _load_tex(key: String) -> Texture2D:
 	if _tex_cache.has(key):
 		return _tex_cache[key]
 	var tex: Texture2D = null
-	for ext in ["webp", "png", "jpg", "jpeg"]:
-		var path := "res://locations/" + key + "." + ext
+	for ext: String in ["webp", "png", "jpg", "jpeg"]:
+		var path: String = "res://locations/" + key + "." + ext
 		if ResourceLoader.exists(path):
 			tex = load(path)
 			break

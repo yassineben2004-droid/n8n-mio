@@ -39,7 +39,7 @@ const CIVILIAN_INSULTS := [
 	"Sei scemo?!", "Ma sei matto?!"
 ]
 
-func init(color: Color, display_name: String, model_path: String = "") -> void:
+func init(color: Color, display_name: String, _model_path: String = "") -> void:
 	_color = color
 	npc_name = display_name
 	if display_name in ["Huncho", "Chakour", "Peco", "Yzilow", "Mimmo", "Lucas", "Madama", "Nemico"]:
@@ -182,7 +182,7 @@ func _punch_player() -> void:
 		stats.take_damage(PUNCH_DAMAGE)
 	_show_insult(FIGHTER_INSULTS)
 
-func take_hit(dmg: int, is_combo: bool = false) -> void:
+func take_hit(dmg: int, _is_combo: bool = false) -> void:
 	if defeated:
 		return
 	npc_hp -= dmg

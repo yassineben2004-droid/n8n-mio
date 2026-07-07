@@ -27,7 +27,7 @@ func _ready() -> void:
 
 func set_target(node: Node3D) -> void:
 	target = node
-	print("Camera target: ", node.name if node else "null")
+	print("Camera target: ", str(node.name) if node else "null")
 
 func align_to_node(node: Node3D) -> void:
 	_yaw = node.rotation.y

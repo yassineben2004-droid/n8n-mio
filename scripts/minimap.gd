@@ -69,7 +69,7 @@ func _build_map_ui() -> void:
 	player_dot.name  = "PlayerDot"
 	player_dot.color = Color(1, 1, 1)
 	player_dot.size  = Vector2(DOT_SIZE, DOT_SIZE)
-	player_dot.position = Vector2(MAP_SIZE / 2 - DOT_SIZE / 2, MAP_SIZE / 2 - DOT_SIZE / 2)
+	player_dot.position = Vector2(MAP_SIZE / 2.0 - DOT_SIZE / 2.0, MAP_SIZE / 2.0 - DOT_SIZE / 2.0)
 	container.add_child(player_dot)
 
 func _process(_delta: float) -> void:

@@ -1,0 +1,116 @@
+{
+  "name": "03 - Brief Sito Web (per AI website builder)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Come funziona\nQuando un lead risponde interessato:\n1. Apri il form di questo workflow\n2. Incolla i dati dell'attivita' (servizi da Google Maps, 3-5 recensioni migliori)\n3. Claude genera un brief professionale completo per un AI website builder (Framer, Lovable, Webflow AI, Wix AI)\n4. Ricevi il brief come bozza email nella tua Gmail\n\nIncolla il brief nel builder → sito pronto in meno di un'ora → mostra l'anteprima al cliente.",
+        "height": 300,
+        "width": 420
+      },
+      "id": "c3000000-0000-4000-8000-000000000001",
+      "name": "Istruzioni",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-220, -180]
+    },
+    {
+      "parameters": {
+        "formTitle": "Brief sito web",
+        "formDescription": "Dati dell'attivita' per generare il brief",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "nome_attivita", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "citta", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "categoria", "fieldType": "text", "placeholder": "es. Impresa di coperture / idraulico / dentista", "requiredField": true },
+            { "fieldLabel": "servizi", "fieldType": "textarea", "placeholder": "Incolla i servizi da Google Maps", "requiredField": true },
+            { "fieldLabel": "recensioni_migliori", "fieldType": "textarea", "placeholder": "Incolla 3-5 recensioni positive reali", "requiredField": true },
+            { "fieldLabel": "anni_esperienza", "fieldType": "text", "placeholder": "es. dal 1998 / 15 anni" },
+            { "fieldLabel": "telefono", "fieldType": "text" },
+            { "fieldLabel": "lingua_sito", "fieldType": "text", "placeholder": "italiano (default) o english" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000002",
+      "name": "Form: dati attivita",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 100],
+      "webhookId": "website-brief-form"
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $json;\nconst lingua = (f.lingua_sito || 'italiano').trim();\n\nconst system = 'Sei un esperto di siti web ad alta conversione per attivita\\' locali di servizi. Scrivi brief dettagliati e pronti all\\'uso per AI website builder (Framer, Lovable, Webflow AI, Wix AI). Il brief deve essere cosi\\' completo che il builder produca un sito professionale al primo colpo.';\n\nconst prompt = `Sto costruendo un sito web ad alta conversione per ${f.nome_attivita}, ${f.categoria} a ${f.citta}. In base ai loro servizi e alle recensioni positive dei clienti, scrivi un prompt professionale e dettagliato per un AI website builder. Il sito deve essere in ${lingua}.\\n\\nIl brief deve includere sezioni per:\\n- Hero header con il servizio principale e gli anni di esperienza (${f.anni_esperienza || 'non specificati'})\\n- Sezione prenotazione/richiesta preventivo con TUTTI i loro servizi elencati\\n- Sezione testimonianze usando le loro recensioni Google REALI (riformattate ma fedeli)\\n- Sezione Chi Siamo che enfatizza esperienza e segnali di fiducia (zona servita: ${f.citta})\\n- Pulsanti call-to-action chiari e ripetuti (telefono: ${f.telefono || 'da inserire'})\\n- Indicazioni su palette colori e tipografia adatte al settore ${f.categoria} (NIENTE estetica generica da AI: no gradienti viola, no font di sistema)\\n- Note SEO locale: title tag, meta description e H1 con \\\"${f.categoria} ${f.citta}\\\"\\n\\nI loro servizi:\\n${f.servizi}\\n\\nLe loro recensioni migliori:\\n${f.recensioni_migliori}\\n\\nProduci SOLO il brief finale pronto da incollare nel builder.`;\n\nreturn {\n  json: {\n    dati: f,\n    anthropic_request: {\n      model: 'claude-opus-4-8',\n      max_tokens: 4096,\n      system,\n      messages: [{ role: 'user', content: prompt }],\n    },\n  },\n};"
+      },
+      "id": "c3000000-0000-4000-8000-000000000003",
+      "name": "Prepara brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_request) }}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "c3000000-0000-4000-8000-000000000004",
+      "name": "Claude: genera brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.content || []).filter(b => b.type === 'text').map(b => b.text).join('\\n');\nconst dati = $('Prepara brief').item.json.dati;\nreturn {\n  json: {\n    subject: 'Brief sito web: ' + dati.nome_attivita + ' (' + dati.citta + ')',\n    body: text,\n  },\n};"
+      },
+      "id": "c3000000-0000-4000-8000-000000000005",
+      "name": "Componi email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 100]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000006",
+      "name": "Gmail: bozza con il brief",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [840, 100]
+    }
+  ],
+  "connections": {
+    "Form: dati attivita": {
+      "main": [[{ "node": "Prepara brief", "type": "main", "index": 0 }]]
+    },
+    "Prepara brief": {
+      "main": [[{ "node": "Claude: genera brief", "type": "main", "index": 0 }]]
+    },
+    "Claude: genera brief": {
+      "main": [[{ "node": "Componi email", "type": "main", "index": 0 }]]
+    },
+    "Componi email": {
+      "main": [[{ "node": "Gmail: bozza con il brief", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

@@ -1,0 +1,194 @@
+{
+  "name": "05 - Post Settimanali GBP (clienti)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Come funziona (servizio ricorrente per i TUOI clienti)\nOgni lunedi' alle 10:00:\n1. Legge la lista clienti dal foglio Google `Clienti` (colonne: nome_cliente, settore, citta, servizi, account_id, location_id, attivo)\n2. Per ogni cliente attivo: Claude scrive un post/aggiornamento settimanale con keyword locali (stagionalita', consigli, offerte)\n3. Pubblica il post sul Google Business Profile via API\n4. Registra il post nel foglio `Post_Log`\n\nGoogle segnala i profili aggiornati settimanalmente: e' uno dei fattori che fa salire il ranking su Maps senza spendere in ads.",
+        "height": 340,
+        "width": 460
+      },
+      "id": "e5000000-0000-4000-8000-000000000001",
+      "name": "Istruzioni",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -240]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 10, "triggerAtDay": [1], "field": "weeks" }]
+        }
+      },
+      "id": "e5000000-0000-4000-8000-000000000002",
+      "name": "Ogni lunedi 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-220, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Clienti",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "attivo", "lookupValue": "si" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000003",
+      "name": "Sheets: clienti attivi",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000004",
+      "name": "Loop clienti",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $json;\nconst mesi = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];\nconst oggi = new Date();\nconst mese = mesi[oggi.getMonth()];\n\nconst system = `Scrivi post per Google Business Profile di attivita' locali. Post brevi (100-200 parole), utili e concreti: consigli stagionali, promemoria di manutenzione, mini-guide. Inserisci in modo naturale keyword locali come \"${c.settore} a ${c.citta}\". Chiudi sempre con una call-to-action semplice (chiama, richiedi un preventivo). Niente hashtag, Google non li usa. Massimo una emoji.`;\n\nconst prompt = `Scrivi il post settimanale per il profilo Google di ${c.nome_cliente}, ${c.settore} a ${c.citta}.\\n\\nServizi offerti: ${c.servizi || 'servizi standard del settore'}\\nMese corrente: ${mese} (adatta il consiglio alla stagione)\\n\\nScegli UN tema utile per i clienti finali questo mese (es. manutenzione stagionale, prevenzione di un problema tipico, come scegliere un professionista). Scrivi SOLO il testo del post, senza titolo ne' premesse.`;\n\nreturn {\n  json: {\n    cliente: c,\n    anthropic_request: {\n      model: 'claude-opus-4-8',\n      max_tokens: 1024,\n      system,\n      messages: [{ role: 'user', content: prompt }],\n    },\n  },\n};"
+      },
+      "id": "e5000000-0000-4000-8000-000000000005",
+      "name": "Prepara post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_request) }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "e5000000-0000-4000-8000-000000000006",
+      "name": "Claude: scrivi post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [620, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.content || []).filter(b => b.type === 'text').map(b => b.text).join('\\n').trim();\nconst cliente = $('Prepara post').item.json.cliente;\nreturn { json: { cliente, post_text: text } };"
+      },
+      "id": "e5000000-0000-4000-8000-000000000007",
+      "name": "Estrai post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://mybusiness.googleapis.com/v4/accounts/{{ $json.cliente.account_id }}/locations/{{ $json.cliente.location_id }}/localPosts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ languageCode: 'it', summary: $json.post_text, topicType: 'STANDARD', callToAction: { actionType: 'CALL' } }) }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000008",
+      "name": "GBP: pubblica post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 220]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Post_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ new Date().toISOString().slice(0,10) }}",
+            "cliente": "={{ $('Estrai post').item.json.cliente.nome_cliente }}",
+            "post": "={{ $('Estrai post').item.json.post_text }}"
+          },
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000009",
+      "name": "Sheets: log post",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1220, 220]
+    },
+    {
+      "parameters": {},
+      "id": "e5000000-0000-4000-8000-00000000000a",
+      "name": "Fine",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [420, 40]
+    }
+  ],
+  "connections": {
+    "Ogni lunedi 10:00": {
+      "main": [[{ "node": "Sheets: clienti attivi", "type": "main", "index": 0 }]]
+    },
+    "Sheets: clienti attivi": {
+      "main": [[{ "node": "Loop clienti", "type": "main", "index": 0 }]]
+    },
+    "Loop clienti": {
+      "main": [
+        [{ "node": "Fine", "type": "main", "index": 0 }],
+        [{ "node": "Prepara post", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepara post": {
+      "main": [[{ "node": "Claude: scrivi post", "type": "main", "index": 0 }]]
+    },
+    "Claude: scrivi post": {
+      "main": [[{ "node": "Estrai post", "type": "main", "index": 0 }]]
+    },
+    "Estrai post": {
+      "main": [[{ "node": "GBP: pubblica post", "type": "main", "index": 0 }]]
+    },
+    "GBP: pubblica post": {
+      "main": [[{ "node": "Sheets: log post", "type": "main", "index": 0 }]]
+    },
+    "Sheets: log post": {
+      "main": [[{ "node": "Loop clienti", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

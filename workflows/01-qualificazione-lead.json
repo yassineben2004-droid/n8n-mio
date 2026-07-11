@@ -1,0 +1,101 @@
+{
+  "name": "01 - Qualificazione Lead (CSV Outscraper)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Come funziona\n1. Scarica un CSV da Outscraper (Google Maps: es. \"idraulico Roma\", \"roofing Atlanta\")\n2. Apri l'URL del form di questo workflow e carica il CSV\n3. Il workflow filtra i lead (rating >= 4.0, recensioni >= 20, sito assente o debole), assegna un punteggio e li salva su Google Sheets con stato `qualificato`\n\nIl foglio Google deve avere le colonne: name, category, city, address, phone, email, site, rating, reviews, score, reasons, status, created_at",
+        "height": 320,
+        "width": 420
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Istruzioni",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-220, -200]
+    },
+    {
+      "parameters": {
+        "formTitle": "Import lead da Outscraper",
+        "formDescription": "Carica il CSV esportato da Outscraper (Google Maps)",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "csv",
+              "fieldType": "file",
+              "acceptFileTypes": ".csv",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Form: carica CSV",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 100],
+      "webhookId": "lead-import-form"
+    },
+    {
+      "parameters": {
+        "operation": "csv",
+        "binaryPropertyName": "csv",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Estrai CSV",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [220, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtra e assegna un punteggio ai lead esportati da Outscraper.\n// Criteri del business: attivita' avviata (rating alto, recensioni vere)\n// ma con presenza digitale debole (niente sito o sito scadente).\nconst get = (row, keys) => {\n  for (const k of keys) {\n    if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {\n      return String(row[k]).trim();\n    }\n  }\n  return '';\n};\n\nconst out = [];\nfor (const item of items) {\n  const r = item.json;\n  const name = get(r, ['name', 'nome', 'business_name', 'title']);\n  const rating = parseFloat(get(r, ['rating', 'stars', 'valutazione']).replace(',', '.')) || 0;\n  const reviews = parseInt(get(r, ['reviews', 'reviews_count', 'recensioni', 'reviews_link_count']), 10) || 0;\n  const site = get(r, ['site', 'website', 'sito']);\n  const phone = get(r, ['phone', 'telefono', 'phone_number']);\n  const email = get(r, ['email_1', 'email', 'email_2']);\n  const address = get(r, ['full_address', 'address', 'indirizzo']);\n  const category = get(r, ['type', 'category', 'categoria', 'subtypes']);\n  const city = get(r, ['city', 'citta', 'comune']);\n\n  if (!name) continue;\n  // Requisiti minimi: business reale con reputazione, non una attivita' morta\n  if (rating < 4.0 || reviews < 20) continue;\n\n  let score = 0;\n  const reasons = [];\n  if (!site) {\n    score += 40;\n    reasons.push('nessun sito web');\n  } else if (/facebook\\.|instagram\\.|wixsite|jimdo|sites\\.google|linktr\\.ee|business\\.site/i.test(site)) {\n    score += 30;\n    reasons.push('sito debole (pagina social o builder gratuito)');\n  }\n  if (rating >= 4.0 && rating <= 4.4) {\n    score += 15;\n    reasons.push('rating migliorabile (' + rating + ')');\n  }\n  if (reviews >= 20 && reviews < 80) {\n    score += 10;\n    reasons.push('poche recensioni rispetto ai competitor');\n  }\n  if (email) score += 20; // contattabile via email\n  if (phone) score += 5;\n\n  // Sotto 30 punti il lead non vale l'outreach\n  if (score < 30) continue;\n\n  out.push({\n    json: {\n      name,\n      category,\n      city,\n      address,\n      phone,\n      email,\n      site,\n      rating,\n      reviews,\n      score,\n      reasons: reasons.join('; '),\n      status: 'qualificato',\n      created_at: new Date().toISOString().slice(0, 10),\n    },\n  });\n}\n\nout.sort((a, b) => b.json.score - a.json.score);\nreturn out;"
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Filtra e punteggia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Sheets: salva lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, 100]
+    }
+  ],
+  "connections": {
+    "Form: carica CSV": {
+      "main": [[{ "node": "Estrai CSV", "type": "main", "index": 0 }]]
+    },
+    "Estrai CSV": {
+      "main": [[{ "node": "Filtra e punteggia", "type": "main", "index": 0 }]]
+    },
+    "Filtra e punteggia": {
+      "main": [[{ "node": "Sheets: salva lead", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

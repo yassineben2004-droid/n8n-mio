@@ -1,0 +1,229 @@
+{
+  "name": "04 - Risposte Recensioni Clienti (servizio GBP)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Come funziona (servizio ricorrente per i TUOI clienti)\nOgni giorno alle 8:00, per il cliente configurato:\n1. Scarica le recensioni dal Google Business Profile via API\n2. Filtra quelle SENZA risposta\n3. Claude scrive una risposta umana, personalizzata, con keyword locali\n4. Recensioni 4-5 stelle → risposta pubblicata automaticamente\n5. Recensioni 1-3 stelle → bozza Gmail per revisione umana (mai rispondere in automatico a un cliente arrabbiato)\n\n⚠️ Richiede accesso all'API Google Business Profile (OAuth2) con l'account che GESTISCE il profilo del cliente. Sostituisci ACCOUNT_ID e LOCATION_ID.\nPer gestire piu' clienti: duplica il workflow o leggi i clienti da un Google Sheet.",
+        "height": 380,
+        "width": 460
+      },
+      "id": "d4000000-0000-4000-8000-000000000001",
+      "name": "Istruzioni",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -260]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 8 }]
+        }
+      },
+      "id": "d4000000-0000-4000-8000-000000000002",
+      "name": "Ogni giorno 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-220, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "account_id", "value": "ACCOUNT_ID", "type": "string" },
+            { "id": "s2", "name": "location_id", "value": "LOCATION_ID", "type": "string" },
+            { "id": "s3", "name": "nome_cliente", "value": "NOME ATTIVITA CLIENTE", "type": "string" },
+            { "id": "s4", "name": "settore", "value": "es. idraulico", "type": "string" },
+            { "id": "s5", "name": "citta", "value": "es. Milano", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000003",
+      "name": "Config cliente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-20, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://mybusiness.googleapis.com/v4/accounts/{{ $json.account_id }}/locations/{{ $json.location_id }}/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000004",
+      "name": "GBP: lista recensioni",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [180, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Estrae le recensioni senza risposta\nconst config = $('Config cliente').first().json;\nconst reviews = $json.reviews || [];\nconst starMap = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };\nconst out = [];\nfor (const r of reviews) {\n  if (r.reviewReply && r.reviewReply.comment) continue; // gia' risposta\n  out.push({\n    json: {\n      config,\n      review_id: r.reviewId || (r.name || '').split('/').pop(),\n      review_name: r.name,\n      reviewer: (r.reviewer && r.reviewer.displayName) || 'Cliente',\n      stars: starMap[r.starRating] || 0,\n      comment: r.comment || '',\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "d4000000-0000-4000-8000-000000000005",
+      "name": "Filtra senza risposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 200]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000006",
+      "name": "Loop recensioni",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [580, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $json;\nconst c = r.config;\n\nconst system = `Rispondi alle recensioni Google per ${c.nome_cliente} (${c.settore} a ${c.citta}). Suona umano e personale, MAI aziendale o robotico. Cita dettagli specifici della recensione quando ci sono. Inserisci in modo naturale una keyword locale (es. \"${c.settore} a ${c.citta}\") quando la risposta lo permette senza forzature — aiuta il ranking su Maps. Massimo 80 parole. Niente emoji nelle risposte a recensioni negative; al massimo una in quelle positive.`;\n\nlet istruzioni;\nif (r.stars >= 4) {\n  istruzioni = 'Recensione POSITIVA: ringrazia con calore, cita un dettaglio della loro esperienza, invita a tornare o a consigliare l\\'attivita\\'.';\n} else if (r.stars === 3) {\n  istruzioni = 'Recensione TIEPIDA: ringrazia, riconosci il margine di miglioramento, invita a ricontattare per sistemare le cose.';\n} else {\n  istruzioni = 'Recensione NEGATIVA: scusati con sincerita\\' senza ammettere colpe legali, mostra che il problema viene preso sul serio, sposta la conversazione in privato (invita a chiamare o scrivere). Tono calmo e professionale.';\n}\n\nconst prompt = `${istruzioni}\\n\\nRecensione di ${r.reviewer} (${r.stars} stelle):\\n\"${r.comment || '(nessun testo, solo stelle)'}\"\\n\\nScrivi SOLO il testo della risposta, senza virgolette ne' premesse.`;\n\nreturn {\n  json: {\n    ...r,\n    anthropic_request: {\n      model: 'claude-opus-4-8',\n      max_tokens: 512,\n      system,\n      messages: [{ role: 'user', content: prompt }],\n    },\n  },\n};"
+      },
+      "id": "d4000000-0000-4000-8000-000000000007",
+      "name": "Prepara risposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_request) }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "d4000000-0000-4000-8000-000000000008",
+      "name": "Claude: risposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.content || []).filter(b => b.type === 'text').map(b => b.text).join('\\n').trim();\nconst r = $('Prepara risposta').item.json;\nreturn { json: { ...r, reply_text: text } };"
+      },
+      "id": "d4000000-0000-4000-8000-000000000009",
+      "name": "Estrai testo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.stars }}",
+              "rightValue": 4,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-00000000000a",
+      "name": "4-5 stelle?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 220]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://mybusiness.googleapis.com/v4/accounts/{{ $json.config.account_id }}/locations/{{ $json.config.location_id }}/reviews/{{ $json.review_id }}/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ comment: $json.reply_text }) }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-00000000000b",
+      "name": "GBP: pubblica risposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 120]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=⚠️ Recensione {{ $json.stars }}★ da rispondere: {{ $json.config.nome_cliente }}",
+        "emailType": "text",
+        "message": "=Recensione di {{ $json.reviewer }} ({{ $json.stars }} stelle):\n\n{{ $json.comment }}\n\n---- RISPOSTA PROPOSTA DA CLAUDE ----\n\n{{ $json.reply_text }}\n\n---- \nRivedi, modifica se serve e pubblicala dal profilo GBP del cliente.",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-00000000000c",
+      "name": "Gmail: bozza per revisione",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1620, 320]
+    },
+    {
+      "parameters": {},
+      "id": "d4000000-0000-4000-8000-00000000000d",
+      "name": "Fine",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 40]
+    }
+  ],
+  "connections": {
+    "Ogni giorno 8:00": {
+      "main": [[{ "node": "Config cliente", "type": "main", "index": 0 }]]
+    },
+    "Config cliente": {
+      "main": [[{ "node": "GBP: lista recensioni", "type": "main", "index": 0 }]]
+    },
+    "GBP: lista recensioni": {
+      "main": [[{ "node": "Filtra senza risposta", "type": "main", "index": 0 }]]
+    },
+    "Filtra senza risposta": {
+      "main": [[{ "node": "Loop recensioni", "type": "main", "index": 0 }]]
+    },
+    "Loop recensioni": {
+      "main": [
+        [{ "node": "Fine", "type": "main", "index": 0 }],
+        [{ "node": "Prepara risposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepara risposta": {
+      "main": [[{ "node": "Claude: risposta", "type": "main", "index": 0 }]]
+    },
+    "Claude: risposta": {
+      "main": [[{ "node": "Estrai testo", "type": "main", "index": 0 }]]
+    },
+    "Estrai testo": {
+      "main": [[{ "node": "4-5 stelle?", "type": "main", "index": 0 }]]
+    },
+    "4-5 stelle?": {
+      "main": [
+        [{ "node": "GBP: pubblica risposta", "type": "main", "index": 0 }],
+        [{ "node": "Gmail: bozza per revisione", "type": "main", "index": 0 }]
+      ]
+    },
+    "GBP: pubblica risposta": {
+      "main": [[{ "node": "Loop recensioni", "type": "main", "index": 0 }]]
+    },
+    "Gmail: bozza per revisione": {
+      "main": [[{ "node": "Loop recensioni", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
